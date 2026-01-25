@@ -10,7 +10,7 @@ SDK_PATH := $(HOME)/Developer/PlaydateSDK
 # Default template
 TEMPLATE ?= basic
 
-.PHONY: help install new-project list-templates list-examples run-example clean
+.PHONY: help install new-project list-templates list-examples run-example clean clean-all clean-sdk
 
 help:
 	@echo "Playdate Development Environment"
@@ -22,6 +22,8 @@ help:
 	@echo "  make list-templates             - Show available templates"
 	@echo "  make list-examples              - Show example projects"
 	@echo "  make run-example EX=hello-world - Build and run an example"
+	@echo "  make clean                      - Remove build artifacts from repo"
+	@echo "  make clean-all                  - Clean all (prompts for SDK removal)"
 	@echo ""
 	@echo "Templates: $(shell ls $(TEMPLATES_DIR))"
 
@@ -95,5 +97,39 @@ endif
 	@open -a "$(SDK_PATH)/Playdate Simulator.app" "$(EXAMPLES_DIR)/$(EX)/output.pdx"
 
 clean:
-	@find $(EXAMPLES_DIR) -name "output.pdx" -type d -exec rm -rf {} + 2>/dev/null || true
-	@echo "Cleaned example build outputs"
+	@echo "Cleaning build artifacts..."
+	@# Clean example build outputs
+	@find $(EXAMPLES_DIR) -name "*.pdx" -type d -exec rm -rf {} + 2>/dev/null || true
+	@# Clean template build outputs (shouldn't exist but just in case)
+	@find $(TEMPLATES_DIR) -name "*.pdx" -type d -exec rm -rf {} + 2>/dev/null || true
+	@# Clean SDK download artifacts in ~/Developer
+	@rm -f $(HOME)/Developer/PlaydateSDK*.zip 2>/dev/null || true
+	@rm -f $(HOME)/Developer/PlaydateSDK*.pkg 2>/dev/null || true
+	@rm -rf $(HOME)/Developer/__MACOSX 2>/dev/null || true
+	@echo "Cleaned build artifacts and SDK download files"
+
+clean-sdk:
+	@echo "This will remove the Playdate SDK from $(SDK_PATH)"
+	@read -p "Are you sure? [y/N] " confirm && \
+		if [ "$$confirm" = "y" ] || [ "$$confirm" = "Y" ]; then \
+			rm -rf "$(SDK_PATH)" && \
+			echo "Playdate SDK removed"; \
+		else \
+			echo "Cancelled"; \
+		fi
+
+clean-all: clean
+	@echo ""
+	@if [ -d "$(SDK_PATH)" ]; then \
+		read -p "Remove Playdate SDK at $(SDK_PATH)? [y/N] " confirm && \
+		if [ "$$confirm" = "y" ] || [ "$$confirm" = "Y" ]; then \
+			rm -rf "$(SDK_PATH)" && \
+			echo "Playdate SDK removed"; \
+		else \
+			echo "SDK kept"; \
+		fi; \
+	else \
+		echo "No SDK installation found"; \
+	fi
+	@echo ""
+	@echo "Clean complete"
