@@ -167,23 +167,59 @@ install_playdate_sdk() {
         exit 1
     fi
 
-    print_step "Extracting SDK..."
+    print_step "Extracting SDK zip..."
     unzip -q -o "$sdk_zip"
 
-    local sdk_dir
-    sdk_dir=$(find . -maxdepth 1 -type d -name "PlaydateSDK*" ! -name "*.zip" -print -quit 2>/dev/null)
+    # Look for .pkg installer (Panic distributes SDK as a .pkg)
+    local pkg_file
+    pkg_file=$(find . -maxdepth 1 -name "PlaydateSDK*.pkg" -type f -print -quit 2>/dev/null)
 
-    if [[ -n "$sdk_dir" && "$sdk_dir" != "./PlaydateSDK" ]]; then
-        sdk_dir="${sdk_dir#./}"
-        mv "$sdk_dir" "PlaydateSDK"
-    fi
+    if [[ -n "$pkg_file" ]]; then
+        print_info "Found installer package: $pkg_file"
+        print_warning "The SDK installer will now open."
+        print_info "Please complete the installation, then return here."
+        echo ""
+        read -r -p "Press Enter to open the installer..."
 
-    if [[ -d "$SDK_PATH" ]]; then
-        rm -f "$sdk_zip"
-        print_success "Playdate SDK installed to $SDK_PATH"
+        open "$pkg_file"
+
+        echo ""
+        print_info "Complete the installation in the GUI, then press Enter."
+        read -r -p "Press Enter after installation is complete..."
+
+        # Verify installation succeeded
+        if [[ -d "$SDK_PATH" ]]; then
+            print_success "Playdate SDK installed to $SDK_PATH"
+            # Clean up
+            rm -f "$pkg_file"
+            rm -rf "__MACOSX" 2>/dev/null || true
+            rm -f "$sdk_zip"
+        else
+            print_error "SDK installation failed - $SDK_PATH not found"
+            print_info "Run the installer manually: open $pkg_file"
+            exit 1
+        fi
     else
-        print_error "SDK installation failed"
-        exit 1
+        # Fallback: maybe it's a direct directory extraction (older SDK versions?)
+        local sdk_dir
+        sdk_dir=$(find . -maxdepth 1 -type d -name "PlaydateSDK*" -print -quit 2>/dev/null)
+
+        if [[ -n "$sdk_dir" && "$sdk_dir" != "./PlaydateSDK" ]]; then
+            sdk_dir="${sdk_dir#./}"
+            if [[ -d "PlaydateSDK" ]]; then
+                rm -rf "PlaydateSDK"
+            fi
+            mv "$sdk_dir" "PlaydateSDK"
+        fi
+
+        if [[ -d "$SDK_PATH" ]]; then
+            rm -f "$sdk_zip"
+            print_success "Playdate SDK installed to $SDK_PATH"
+        else
+            print_error "SDK installation failed"
+            print_info "Could not find SDK directory or installer package"
+            exit 1
+        fi
     fi
 
     # Remove quarantine
