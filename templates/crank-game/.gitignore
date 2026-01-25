@@ -1,0 +1,10 @@
+# Compiled game
+output.pdx/
+*.pdx/
+
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+*.sublime-*

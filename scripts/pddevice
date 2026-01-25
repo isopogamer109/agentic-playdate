@@ -1,0 +1,81 @@
+#!/bin/bash
+#===============================================================================
+# Deploy to Physical Playdate Device
+# Requires: Playdate connected via USB
+#===============================================================================
+
+set -euo pipefail
+
+SDK_PATH="${PLAYDATE_SDK_PATH:-$HOME/Developer/PlaydateSDK}"
+PDUTIL="$SDK_PATH/bin/pdutil"
+
+show_help() {
+    cat << EOF
+Deploy to Physical Playdate Device
+
+Usage: $(basename "$0") [options] [game.pdx]
+
+Options:
+  -h, --help     Show this help
+  -l, --list     List games on device
+  -i, --info     Show device info
+
+Note: Playdate must be connected via USB and unlocked
+EOF
+}
+
+check_device() {
+    if ! "$PDUTIL" info &>/dev/null; then
+        echo "No Playdate device found!"
+        echo ""
+        echo "Make sure:"
+        echo "  1. Playdate is connected via USB"
+        echo "  2. Playdate is unlocked (press Lock button)"
+        echo "  3. Playdate is not in storage mode"
+        return 1
+    fi
+    return 0
+}
+
+case "${1:-}" in
+    -h|--help)
+        show_help
+        ;;
+    -l|--list)
+        check_device || exit 1
+        echo "Games on device:"
+        "$PDUTIL" datadisk list
+        ;;
+    -i|--info)
+        check_device || exit 1
+        "$PDUTIL" info
+        ;;
+    "")
+        # Build and install current project
+        if [[ -d "source" ]]; then
+            echo "Building..."
+            pdc source output.pdx || exit 1
+        fi
+
+        if [[ -d "output.pdx" ]]; then
+            check_device || exit 1
+            echo "Installing output.pdx to Playdate..."
+            "$PDUTIL" install output.pdx
+            echo "Done! Game should now appear on your Playdate."
+        else
+            echo "No output.pdx found. Build first!"
+            exit 1
+        fi
+        ;;
+    *)
+        if [[ -d "$1" ]]; then
+            check_device || exit 1
+            echo "Installing $1 to Playdate..."
+            "$PDUTIL" install "$1"
+            echo "Done!"
+        else
+            echo "$1 is not a valid .pdx directory"
+            exit 1
+        fi
+        ;;
+esac

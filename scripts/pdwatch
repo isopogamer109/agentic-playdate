@@ -1,0 +1,60 @@
+#!/bin/bash
+#===============================================================================
+# Playdate Watch Mode - Auto-rebuild on file changes
+# Requires: fswatch (brew install fswatch)
+#===============================================================================
+
+set -euo pipefail
+
+SDK_PATH="${PLAYDATE_SDK_PATH:-$HOME/Developer/PlaydateSDK}"
+SIMULATOR_APP="$SDK_PATH/Playdate Simulator.app"
+
+if ! command -v fswatch &> /dev/null; then
+    echo "Error: fswatch is required but not installed."
+    echo "Install with: brew install fswatch"
+    exit 1
+fi
+
+# Find source directory
+if [[ -d "source" ]]; then
+    SOURCE_DIR="source"
+elif [[ -d "Source" ]]; then
+    SOURCE_DIR="Source"
+elif [[ -d "src" ]]; then
+    SOURCE_DIR="src"
+else
+    echo "Error: No source directory found"
+    exit 1
+fi
+
+OUTPUT="${1:-output.pdx}"
+
+echo "Watching $SOURCE_DIR for changes..."
+echo "Output: $OUTPUT"
+echo "Press Ctrl+C to stop"
+echo ""
+
+# Initial build
+echo "Initial build..."
+if pdc "$SOURCE_DIR" "$OUTPUT"; then
+    echo "Build successful! Launching simulator..."
+    open -a "$SIMULATOR_APP" "$OUTPUT"
+else
+    echo "Initial build failed!"
+fi
+
+echo ""
+echo "Watching for changes..."
+
+# Watch for changes
+fswatch -o "$SOURCE_DIR" | while read -r event; do
+    echo ""
+    echo "Change detected at $(date '+%H:%M:%S')"
+    echo "Rebuilding..."
+
+    if pdc "$SOURCE_DIR" "$OUTPUT" 2>&1; then
+        echo "Build successful!"
+    else
+        echo "Build failed!"
+    fi
+done

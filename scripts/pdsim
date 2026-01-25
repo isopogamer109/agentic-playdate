@@ -1,0 +1,92 @@
+#!/bin/bash
+#===============================================================================
+# Playdate Simulator Launcher
+# Usage: pdsim [options] [game.pdx]
+#===============================================================================
+
+set -euo pipefail
+
+SDK_PATH="${PLAYDATE_SDK_PATH:-$HOME/Developer/PlaydateSDK}"
+SIMULATOR_APP="$SDK_PATH/Playdate Simulator.app"
+
+show_help() {
+    cat << EOF
+Playdate Simulator Launcher
+
+Usage: $(basename "$0") [options] [game.pdx]
+
+Options:
+  -h, --help      Show this help message
+  -l, --list      List recently played games
+  -e, --examples  Launch SDK examples browser
+  -k, --kill      Kill running simulator
+  -r, --restart   Restart simulator
+
+Examples:
+  $(basename "$0") output.pdx     # Launch specific game
+  $(basename "$0")                # Launch simulator only
+  $(basename "$0") -e             # Browse SDK examples
+EOF
+}
+
+list_recent() {
+    echo "Recent .pdx files:"
+    find ~/Developer -name "*.pdx" -type d -mtime -7 2>/dev/null | head -10
+}
+
+launch_examples() {
+    echo "SDK Examples available:"
+    ls -1 "$SDK_PATH/Examples/"
+    echo ""
+    read -r -p "Enter example name to run (or Enter to cancel): " example
+    if [[ -n "$example" && -d "$SDK_PATH/Examples/$example" ]]; then
+        cd "$SDK_PATH/Examples/$example"
+        if [[ -d "Source" ]]; then
+            pdc Source output.pdx
+        elif [[ -d "source" ]]; then
+            pdc source output.pdx
+        fi
+        open -a "$SIMULATOR_APP" output.pdx
+    fi
+}
+
+kill_simulator() {
+    if pgrep -x "Playdate Simulator" > /dev/null; then
+        echo "Killing Playdate Simulator..."
+        pkill -x "Playdate Simulator"
+        echo "Done."
+    else
+        echo "Simulator is not running."
+    fi
+}
+
+case "${1:-}" in
+    -h|--help)
+        show_help
+        ;;
+    -l|--list)
+        list_recent
+        ;;
+    -e|--examples)
+        launch_examples
+        ;;
+    -k|--kill)
+        kill_simulator
+        ;;
+    -r|--restart)
+        kill_simulator
+        sleep 1
+        open -a "$SIMULATOR_APP"
+        ;;
+    "")
+        open -a "$SIMULATOR_APP"
+        ;;
+    *)
+        if [[ -d "$1" ]]; then
+            open -a "$SIMULATOR_APP" "$1"
+        else
+            echo "Error: $1 is not a valid .pdx directory"
+            exit 1
+        fi
+        ;;
+esac

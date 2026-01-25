@@ -1,0 +1,7 @@
+name=TemplateName
+author=Your Name
+description=A sprite-based Playdate game
+bundleID=com.example.templatename
+version=1.0
+buildNumber=1
+imagePath=images

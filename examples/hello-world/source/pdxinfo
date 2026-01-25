@@ -1,0 +1,6 @@
+name=Hello World
+author=Playdate Dev
+description=The simplest Playdate game
+bundleID=com.example.helloworld
+version=1.0
+buildNumber=1

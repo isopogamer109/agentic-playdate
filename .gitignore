@@ -1,0 +1,18 @@
+# Compiled games
+*.pdx/
+output.pdx/
+
+# macOS
+.DS_Store
+*.swp
+*~
+
+# IDE
+.idea/
+*.sublime-*
+
+# Claude Code local settings
+.claude/
+
+# Asciinema recordings
+*.cast

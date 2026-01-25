@@ -1,0 +1,30 @@
+#!/bin/bash
+#===============================================================================
+# Playdate Build and Run
+# Builds the current directory's source and launches in simulator
+#===============================================================================
+
+set -euo pipefail
+
+SDK_PATH="${PLAYDATE_SDK_PATH:-$HOME/Developer/PlaydateSDK}"
+SIMULATOR_APP="$SDK_PATH/Playdate Simulator.app"
+
+# Find source directory
+if [[ -d "source" ]]; then
+    SOURCE_DIR="source"
+elif [[ -d "Source" ]]; then
+    SOURCE_DIR="Source"
+elif [[ -d "src" ]]; then
+    SOURCE_DIR="src"
+else
+    echo "Error: No source directory found (looking for source/, Source/, or src/)"
+    exit 1
+fi
+
+OUTPUT="${1:-output.pdx}"
+
+echo "Building $SOURCE_DIR -> $OUTPUT"
+pdc "$SOURCE_DIR" "$OUTPUT"
+
+echo "Build successful! Launching simulator..."
+open -a "$SIMULATOR_APP" "$OUTPUT"

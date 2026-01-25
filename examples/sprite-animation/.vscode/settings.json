@@ -1,0 +1,14 @@
+{
+    "Lua.runtime.version": "Lua 5.4",
+    "Lua.diagnostics.disable": ["undefined-global", "lowercase-global"],
+    "Lua.diagnostics.globals": ["playdate", "import", "class", "Object"],
+    "Lua.runtime.nonstandardSymbol": ["+=", "-=", "*=", "/=", "//=", "%=", "<<=", ">>=", "&=", "|=", "^="],
+    "Lua.workspace.library": ["${env:PLAYDATE_SDK_PATH}/CoreLibs"],
+    "Lua.workspace.preloadFileSize": 1000,
+    "Lua.workspace.checkThirdParty": false,
+    "playdate.sdkPath": "${env:PLAYDATE_SDK_PATH}",
+    "playdate.source": "source",
+    "playdate.output": "output.pdx",
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true
+}

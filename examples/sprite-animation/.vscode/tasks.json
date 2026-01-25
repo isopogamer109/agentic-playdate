@@ -1,0 +1,36 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Playdate: Build",
+            "type": "shell",
+            "command": "pdc",
+            "args": ["${workspaceFolder}/source", "${workspaceFolder}/output.pdx"],
+            "problemMatcher": {
+                "owner": "pdc",
+                "fileLocation": ["relative", "${workspaceFolder}"],
+                "pattern": {
+                    "regexp": "^(.*):(\\d+):\\s+(.*)$",
+                    "file": 1,
+                    "line": 2,
+                    "message": 3
+                }
+            },
+            "group": "build"
+        },
+        {
+            "label": "Playdate: Run",
+            "type": "shell",
+            "command": "open",
+            "args": ["-a", "${env:PLAYDATE_SDK_PATH}/Playdate Simulator.app", "${workspaceFolder}/output.pdx"],
+            "problemMatcher": []
+        },
+        {
+            "label": "Playdate: Build and Run",
+            "dependsOn": ["Playdate: Build", "Playdate: Run"],
+            "dependsOrder": "sequence",
+            "group": {"kind": "build", "isDefault": true},
+            "problemMatcher": []
+        }
+    ]
+}

@@ -1,0 +1,6 @@
+name=Crank Demo
+author=Playdate Dev
+description=Demonstrates crank input APIs
+bundleID=com.example.crankdemo
+version=1.0
+buildNumber=1

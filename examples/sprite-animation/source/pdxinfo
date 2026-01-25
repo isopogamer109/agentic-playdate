@@ -1,0 +1,6 @@
+name=Sprite Animation
+author=Playdate Dev
+description=Frame-based animation example
+bundleID=com.example.spriteanimation
+version=1.0
+buildNumber=1
