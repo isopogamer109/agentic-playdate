@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "playdate": {
+      "command": "node",
+      "args": ["./mcp-server/build/index.js"],
+      "env": {
+        "PLAYDATE_SDK_PATH": "/Users/daryl/Developer/PlaydateSDK",
+        "PLAYDATE_DEV_ROOT": "/Users/daryl/projects/playdate-dev"
+      }
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "name": "playdate-mcp-server",
+  "version": "1.0.0",
+  "description": "MCP server for Playdate game development",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "playdate-mcp-server": "./build/index.js"
+  },
+  "files": ["build"],
+  "scripts": {
+    "build": "tsc && chmod +x build/index.js",
+    "watch": "tsc --watch",
+    "inspect": "npx @modelcontextprotocol/inspector build/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.0"
+  }
+}
