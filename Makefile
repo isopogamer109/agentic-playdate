@@ -1,19 +1,56 @@
-# Playdate Development Environment
+# Playdate Development Environment - Cross-Platform Makefile
+# Supports: macOS, Linux, Windows (Git Bash/MSYS2)
 # Run 'make help' for usage
 
 SHELL := /bin/bash
 PLAYDATE_DEV_ROOT := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 TEMPLATES_DIR := $(PLAYDATE_DEV_ROOT)/templates
 EXAMPLES_DIR := $(PLAYDATE_DEV_ROOT)/examples
-SDK_PATH := $(HOME)/Developer/PlaydateSDK
+
+# Detect OS for cross-platform support
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Darwin)
+    PLATFORM := macos
+    SDK_PATH := $(HOME)/Developer/PlaydateSDK
+    SED_INPLACE := sed -i ''
+    OPEN_CMD := open -a
+    SIMULATOR := $(SDK_PATH)/Playdate Simulator.app
+else ifeq ($(UNAME_S),Linux)
+    PLATFORM := linux
+    SDK_PATH := $(HOME)/PlaydateSDK
+    SED_INPLACE := sed -i
+    OPEN_CMD :=
+    SIMULATOR := $(SDK_PATH)/bin/PlaydateSimulator
+else ifneq (,$(findstring MINGW,$(UNAME_S)))
+    PLATFORM := windows
+    SDK_PATH := $(HOME)/Documents/PlaydateSDK
+    SED_INPLACE := sed -i
+    OPEN_CMD :=
+    SIMULATOR := $(SDK_PATH)/bin/PlaydateSimulator.exe
+else ifneq (,$(findstring MSYS,$(UNAME_S)))
+    PLATFORM := windows
+    SDK_PATH := $(HOME)/Documents/PlaydateSDK
+    SED_INPLACE := sed -i
+    OPEN_CMD :=
+    SIMULATOR := $(SDK_PATH)/bin/PlaydateSimulator.exe
+else
+    PLATFORM := unknown
+    SDK_PATH := $(HOME)/PlaydateSDK
+    SED_INPLACE := sed -i
+    OPEN_CMD :=
+    SIMULATOR := $(SDK_PATH)/bin/PlaydateSimulator
+endif
+
+# Allow override via environment
+SDK_PATH := $(or $(PLAYDATE_SDK_PATH),$(SDK_PATH))
 
 # Default template
 TEMPLATE ?= basic
 
-.PHONY: help install new-project list-templates list-examples run-example clean clean-all clean-sdk
+.PHONY: help install new-project list-templates list-examples run-example clean clean-all clean-sdk platform-info
 
 help:
-	@echo "Playdate Development Environment"
+	@echo "Playdate Development Environment ($(PLATFORM))"
 	@echo ""
 	@echo "Usage:"
 	@echo "  make install                    - Install dependencies (SDK, tools)"
@@ -24,6 +61,7 @@ help:
 	@echo "  make run-example EX=hello-world - Build and run an example"
 	@echo "  make clean                      - Remove build artifacts from repo"
 	@echo "  make clean-all                  - Clean all (prompts for SDK removal)"
+	@echo "  make platform-info              - Show platform detection info"
 	@echo ""
 	@echo "Templates: $(shell ls $(TEMPLATES_DIR))"
 
@@ -46,9 +84,9 @@ endif
 		exit 1; \
 	fi
 	@cp -r "$(TEMPLATES_DIR)/$(TEMPLATE)" "$(NAME)"
-	@sed -i '' "s/TemplateName/$(NAME)/g" "$(NAME)/source/pdxinfo"
+	@$(SED_INPLACE) "s/TemplateName/$(NAME)/g" "$(NAME)/source/pdxinfo"
 	@SAFE=$$(echo "$(NAME)" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9'); \
-		sed -i '' "s/templatename/$$SAFE/g" "$(NAME)/source/pdxinfo"
+		$(SED_INPLACE) "s/templatename/$$SAFE/g" "$(NAME)/source/pdxinfo"
 	@echo "Created project: $(NAME) (template: $(TEMPLATE))"
 	@echo ""
 	@echo "Next steps:"
@@ -94,7 +132,11 @@ endif
 	@echo "Building $(EX)..."
 	@cd "$(EXAMPLES_DIR)/$(EX)" && pdc source output.pdx
 	@echo "Launching simulator..."
-	@open -a "$(SDK_PATH)/Playdate Simulator.app" "$(EXAMPLES_DIR)/$(EX)/output.pdx"
+ifeq ($(PLATFORM),macos)
+	@open -a "$(SIMULATOR)" "$(EXAMPLES_DIR)/$(EX)/output.pdx"
+else
+	@"$(SIMULATOR)" "$(EXAMPLES_DIR)/$(EX)/output.pdx" &
+endif
 
 clean:
 	@echo "Cleaning build artifacts..."
@@ -102,10 +144,15 @@ clean:
 	@find $(EXAMPLES_DIR) -name "*.pdx" -type d -exec rm -rf {} + 2>/dev/null || true
 	@# Clean template build outputs (shouldn't exist but just in case)
 	@find $(TEMPLATES_DIR) -name "*.pdx" -type d -exec rm -rf {} + 2>/dev/null || true
-	@# Clean SDK download artifacts in ~/Developer
+	@# Clean SDK download artifacts
+ifeq ($(PLATFORM),macos)
 	@rm -f $(HOME)/Developer/PlaydateSDK*.zip 2>/dev/null || true
 	@rm -f $(HOME)/Developer/PlaydateSDK*.pkg 2>/dev/null || true
 	@rm -rf $(HOME)/Developer/__MACOSX 2>/dev/null || true
+else
+	@rm -f $(HOME)/PlaydateSDK*.zip 2>/dev/null || true
+	@rm -f $(HOME)/PlaydateSDK*.tar.gz 2>/dev/null || true
+endif
 	@echo "Cleaned build artifacts and SDK download files"
 
 clean-sdk:
@@ -133,3 +180,16 @@ clean-all: clean
 	fi
 	@echo ""
 	@echo "Clean complete"
+
+platform-info:
+	@echo "Platform Detection"
+	@echo "=================="
+	@echo "  Detected OS:    $(PLATFORM)"
+	@echo "  uname -s:       $(UNAME_S)"
+	@echo "  SDK Path:       $(SDK_PATH)"
+	@echo "  Simulator:      $(SIMULATOR)"
+	@echo "  sed command:    $(SED_INPLACE)"
+	@echo ""
+	@echo "Environment:"
+	@echo "  PLAYDATE_SDK_PATH: $(PLAYDATE_SDK_PATH)"
+	@echo "  HOME:              $(HOME)"

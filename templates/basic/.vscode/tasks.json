@@ -21,9 +21,38 @@
         {
             "label": "Playdate: Run",
             "type": "shell",
+            "command": "pdbr",
+            "args": [],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [],
+            "detail": "Cross-platform: Uses pdbr script to launch simulator"
+        },
+        {
+            "label": "Playdate: Run (macOS)",
+            "type": "shell",
             "command": "open",
             "args": ["-a", "${env:PLAYDATE_SDK_PATH}/Playdate Simulator.app", "${workspaceFolder}/output.pdx"],
-            "problemMatcher": []
+            "problemMatcher": [],
+            "detail": "macOS only: Direct simulator launch",
+            "presentation": {
+                "reveal": "silent"
+            }
+        },
+        {
+            "label": "Playdate: Run (Linux/Windows)",
+            "type": "shell",
+            "linux": {
+                "command": "${env:PLAYDATE_SDK_PATH}/bin/PlaydateSimulator",
+                "args": ["${workspaceFolder}/output.pdx"]
+            },
+            "windows": {
+                "command": "${env:PLAYDATE_SDK_PATH}/bin/PlaydateSimulator.exe",
+                "args": ["${workspaceFolder}/output.pdx"]
+            },
+            "problemMatcher": [],
+            "detail": "Linux/Windows: Direct simulator launch"
         },
         {
             "label": "Playdate: Build and Run",
@@ -31,6 +60,31 @@
             "dependsOrder": "sequence",
             "group": {"kind": "build", "isDefault": true},
             "problemMatcher": []
+        },
+        {
+            "label": "Playdate: Watch",
+            "type": "shell",
+            "command": "pdwatch",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "isBackground": true,
+            "problemMatcher": {
+                "owner": "pdc",
+                "fileLocation": ["relative", "${workspaceFolder}"],
+                "pattern": {
+                    "regexp": "^(.*):(\\d+):\\s+(.*)$",
+                    "file": 1,
+                    "line": 2,
+                    "message": 3
+                },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": "^Watching.*for changes",
+                    "endsPattern": "^Build (successful|failed)"
+                }
+            },
+            "detail": "Cross-platform: Auto-rebuild on file changes"
         }
     ]
 }

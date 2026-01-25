@@ -2,12 +2,56 @@
 #===============================================================================
 # Playdate Simulator Launcher
 # Usage: pdsim [options] [game.pdx]
+#
+# Cross-platform support: macOS, Linux, Windows (Git Bash/MSYS2)
 #===============================================================================
 
 set -euo pipefail
 
-SDK_PATH="${PLAYDATE_SDK_PATH:-$HOME/Developer/PlaydateSDK}"
-SIMULATOR_APP="$SDK_PATH/Playdate Simulator.app"
+# Get script directory and source platform utilities
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -f "$SCRIPT_DIR/platform-utils.sh" ]]; then
+    source "$SCRIPT_DIR/platform-utils.sh"
+fi
+
+# SDK path (use platform-aware default if available)
+if [[ -n "${PLAYDATE_SDK_PATH:-}" ]]; then
+    SDK_PATH="$PLAYDATE_SDK_PATH"
+elif type get_default_sdk_path &>/dev/null; then
+    SDK_PATH="$(get_default_sdk_path)"
+else
+    case "$(uname -s)" in
+        Darwin)
+            SDK_PATH="$HOME/Developer/PlaydateSDK"
+            ;;
+        Linux)
+            SDK_PATH="$HOME/PlaydateSDK"
+            ;;
+        *)
+            SDK_PATH="$HOME/Documents/PlaydateSDK"
+            ;;
+    esac
+fi
+
+# Get simulator path
+if type get_simulator_path &>/dev/null; then
+    SIMULATOR_APP="$(get_simulator_path "$SDK_PATH")"
+else
+    case "$(uname -s)" in
+        Darwin)
+            SIMULATOR_APP="$SDK_PATH/Playdate Simulator.app"
+            ;;
+        Linux)
+            SIMULATOR_APP="$SDK_PATH/bin/PlaydateSimulator"
+            ;;
+        MINGW*|MSYS*|CYGWIN*)
+            SIMULATOR_APP="$SDK_PATH/bin/PlaydateSimulator.exe"
+            ;;
+        *)
+            SIMULATOR_APP="$SDK_PATH/bin/PlaydateSimulator"
+            ;;
+    esac
+fi
 
 show_help() {
     cat << EOF
@@ -21,6 +65,7 @@ Options:
   -e, --examples  Launch SDK examples browser
   -k, --kill      Kill running simulator
   -r, --restart   Restart simulator
+  -i, --info      Show platform info
 
 Examples:
   $(basename "$0") output.pdx     # Launch specific game
@@ -31,12 +76,26 @@ EOF
 
 list_recent() {
     echo "Recent .pdx files:"
-    find ~/Developer -name "*.pdx" -type d -mtime -7 2>/dev/null | head -10
+    local search_dir="$HOME"
+    case "$(uname -s)" in
+        Darwin)
+            search_dir="$HOME/Developer"
+            ;;
+        Linux)
+            search_dir="$HOME"
+            ;;
+    esac
+    find "$search_dir" -name "*.pdx" -type d -mtime -7 2>/dev/null | head -10
 }
 
 launch_examples() {
     echo "SDK Examples available:"
-    ls -1 "$SDK_PATH/Examples/"
+    if [[ -d "$SDK_PATH/Examples" ]]; then
+        ls -1 "$SDK_PATH/Examples/"
+    else
+        echo "Examples directory not found at $SDK_PATH/Examples/"
+        return 1
+    fi
     echo ""
     read -r -p "Enter example name to run (or Enter to cancel): " example
     if [[ -n "$example" && -d "$SDK_PATH/Examples/$example" ]]; then
@@ -46,17 +105,90 @@ launch_examples() {
         elif [[ -d "source" ]]; then
             pdc source output.pdx
         fi
-        open -a "$SIMULATOR_APP" output.pdx
+        launch_simulator output.pdx
     fi
 }
 
-kill_simulator() {
-    if pgrep -x "Playdate Simulator" > /dev/null; then
-        echo "Killing Playdate Simulator..."
-        pkill -x "Playdate Simulator"
-        echo "Done."
+# Cross-platform simulator launch
+launch_simulator() {
+    local pdx_file="${1:-}"
+
+    if type open_simulator &>/dev/null; then
+        open_simulator "$pdx_file"
     else
-        echo "Simulator is not running."
+        case "$(uname -s)" in
+            Darwin)
+                if [[ -n "$pdx_file" ]]; then
+                    open -a "$SIMULATOR_APP" "$pdx_file"
+                else
+                    open -a "$SIMULATOR_APP"
+                fi
+                ;;
+            *)
+                if [[ -n "$pdx_file" ]]; then
+                    "$SIMULATOR_APP" "$pdx_file" &
+                else
+                    "$SIMULATOR_APP" &
+                fi
+                ;;
+        esac
+    fi
+}
+
+# Cross-platform kill simulator
+do_kill_simulator() {
+    if type kill_simulator &>/dev/null; then
+        if is_simulator_running; then
+            echo "Killing Playdate Simulator..."
+            kill_simulator
+            echo "Done."
+        else
+            echo "Simulator is not running."
+        fi
+    else
+        case "$(uname -s)" in
+            Darwin)
+                if pgrep -x "Playdate Simulator" > /dev/null 2>&1; then
+                    echo "Killing Playdate Simulator..."
+                    pkill -x "Playdate Simulator"
+                    echo "Done."
+                else
+                    echo "Simulator is not running."
+                fi
+                ;;
+            Linux)
+                if pgrep -f "PlaydateSimulator" > /dev/null 2>&1; then
+                    echo "Killing Playdate Simulator..."
+                    pkill -f "PlaydateSimulator"
+                    echo "Done."
+                else
+                    echo "Simulator is not running."
+                fi
+                ;;
+            MINGW*|MSYS*|CYGWIN*)
+                if tasklist 2>/dev/null | grep -qi "PlaydateSimulator.exe"; then
+                    echo "Killing Playdate Simulator..."
+                    taskkill //IM "PlaydateSimulator.exe" //F 2>/dev/null || \
+                    taskkill /IM "PlaydateSimulator.exe" /F 2>/dev/null || true
+                    echo "Done."
+                else
+                    echo "Simulator is not running."
+                fi
+                ;;
+            *)
+                echo "Kill not supported on this platform"
+                ;;
+        esac
+    fi
+}
+
+show_platform_info() {
+    if type print_platform_info &>/dev/null; then
+        print_platform_info
+    else
+        echo "Platform: $(uname -s)"
+        echo "SDK Path: $SDK_PATH"
+        echo "Simulator: $SIMULATOR_APP"
     fi
 }
 
@@ -71,19 +203,22 @@ case "${1:-}" in
         launch_examples
         ;;
     -k|--kill)
-        kill_simulator
+        do_kill_simulator
         ;;
     -r|--restart)
-        kill_simulator
+        do_kill_simulator
         sleep 1
-        open -a "$SIMULATOR_APP"
+        launch_simulator
+        ;;
+    -i|--info)
+        show_platform_info
         ;;
     "")
-        open -a "$SIMULATOR_APP"
+        launch_simulator
         ;;
     *)
         if [[ -d "$1" ]]; then
-            open -a "$SIMULATOR_APP" "$1"
+            launch_simulator "$1"
         else
             echo "Error: $1 is not a valid .pdx directory"
             exit 1
