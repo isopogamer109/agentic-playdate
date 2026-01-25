@@ -125,7 +125,7 @@ get_simulator_path() {
     local sdk_path="${1:-$PLAYDATE_SDK_PATH}"
     case "$PLATFORM_OS" in
         macos)
-            echo "$sdk_path/Playdate Simulator.app"
+            echo "$sdk_path/bin/Playdate Simulator.app"
             ;;
         linux|wsl)
             echo "$sdk_path/bin/PlaydateSimulator"

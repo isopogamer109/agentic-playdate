@@ -60,7 +60,7 @@ else
     # Fallback based on OS
     case "$(uname -s)" in
         Darwin)
-            SIMULATOR_APP="$SDK_PATH/Playdate Simulator.app"
+            SIMULATOR_APP="$SDK_PATH/bin/Playdate Simulator.app"
             open -a "$SIMULATOR_APP" "$OUTPUT"
             ;;
         Linux)

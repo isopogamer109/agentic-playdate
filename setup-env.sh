@@ -68,7 +68,7 @@ else
     # Fallback
     case "$(uname -s)" in
         Darwin)
-            export PLAYDATE_SIMULATOR="$PLAYDATE_SDK_PATH/Playdate Simulator.app"
+            export PLAYDATE_SIMULATOR="$PLAYDATE_SDK_PATH/bin/Playdate Simulator.app"
             ;;
         *)
             export PLAYDATE_SIMULATOR="$PLAYDATE_SDK_PATH/bin/PlaydateSimulator"

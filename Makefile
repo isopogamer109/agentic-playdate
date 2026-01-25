@@ -14,7 +14,7 @@ ifeq ($(UNAME_S),Darwin)
     SDK_PATH := $(HOME)/Developer/PlaydateSDK
     SED_INPLACE := sed -i ''
     OPEN_CMD := open -a
-    SIMULATOR := $(SDK_PATH)/Playdate Simulator.app
+    SIMULATOR := $(SDK_PATH)/bin/Playdate Simulator.app
 else ifeq ($(UNAME_S),Linux)
     PLATFORM := linux
     SDK_PATH := $(HOME)/PlaydateSDK

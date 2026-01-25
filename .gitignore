@@ -17,3 +17,4 @@ output.pdx/
 # Asciinema recordings
 *.cast
 digest.txt
+games/

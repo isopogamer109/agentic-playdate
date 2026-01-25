@@ -373,7 +373,7 @@ install_sdk_macos() {
     fi
 
     # Remove quarantine (macOS-specific)
-    xattr -dr com.apple.quarantine "$sdk_path/Playdate Simulator.app" 2>/dev/null || true
+    xattr -dr com.apple.quarantine "$sdk_path/bin/Playdate Simulator.app" 2>/dev/null || true
 }
 
 install_sdk_linux() {
