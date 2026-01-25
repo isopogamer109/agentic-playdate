@@ -26,7 +26,7 @@ A cross-platform development environment for Playdate handheld game development.
 
 ```bash
 # 1. Clone this repo
-git clone <repo-url> playdate-dev
+git clone https://github.com/daryllundy/agentic-playdate playdate-dev
 cd playdate-dev
 
 # 2. Run the installer (detects your platform)
