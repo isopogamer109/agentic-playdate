@@ -1,19 +1,73 @@
 #!/bin/bash
 #===============================================================================
 # Playdate Watch Mode - Auto-rebuild on file changes
-# Requires: fswatch (brew install fswatch)
+#
+# Requires:
+#   macOS:   fswatch (brew install fswatch)
+#   Linux:   inotify-tools (apt/dnf/pacman install inotify-tools)
+#   Windows: Uses polling mode (or inotify-tools in MSYS2)
+#
+# Cross-platform support: macOS, Linux, Windows (Git Bash/MSYS2)
 #===============================================================================
 
 set -euo pipefail
 
-SDK_PATH="${PLAYDATE_SDK_PATH:-$HOME/Developer/PlaydateSDK}"
-SIMULATOR_APP="$SDK_PATH/Playdate Simulator.app"
-
-if ! command -v fswatch &> /dev/null; then
-    echo "Error: fswatch is required but not installed."
-    echo "Install with: brew install fswatch"
-    exit 1
+# Get script directory and source platform utilities
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -f "$SCRIPT_DIR/platform-utils.sh" ]]; then
+    source "$SCRIPT_DIR/platform-utils.sh"
 fi
+
+# SDK path (use platform-aware default if available)
+if [[ -n "${PLAYDATE_SDK_PATH:-}" ]]; then
+    SDK_PATH="$PLAYDATE_SDK_PATH"
+elif type get_default_sdk_path &>/dev/null; then
+    SDK_PATH="$(get_default_sdk_path)"
+else
+    case "$(uname -s)" in
+        Darwin)
+            SDK_PATH="$HOME/Developer/PlaydateSDK"
+            ;;
+        Linux)
+            SDK_PATH="$HOME/PlaydateSDK"
+            ;;
+        *)
+            SDK_PATH="$HOME/Documents/PlaydateSDK"
+            ;;
+    esac
+fi
+
+# Check for file watcher
+check_watcher() {
+    if type has_file_watcher &>/dev/null; then
+        if ! has_file_watcher; then
+            echo "Error: No file watcher is installed."
+            get_file_watcher_install_hint
+            exit 1
+        fi
+    else
+        if ! command -v fswatch &>/dev/null && ! command -v inotifywait &>/dev/null; then
+            echo "Error: No file watcher is installed."
+            case "$(uname -s)" in
+                Darwin)
+                    echo "Install with: brew install fswatch"
+                    ;;
+                Linux)
+                    echo "Install with: sudo apt install inotify-tools"
+                    echo "         or: sudo dnf install inotify-tools"
+                    echo "         or: sudo pacman -S inotify-tools"
+                    ;;
+                MINGW*|MSYS*|CYGWIN*)
+                    echo "Will use polling mode (less efficient)"
+                    return 0  # Allow polling fallback on Windows
+                    ;;
+            esac
+            exit 1
+        fi
+    fi
+}
+
+check_watcher
 
 # Find source directory
 if [[ -d "source" ]]; then
@@ -34,11 +88,34 @@ echo "Output: $OUTPUT"
 echo "Press Ctrl+C to stop"
 echo ""
 
+# Cross-platform simulator launch
+launch_sim() {
+    local pdx_file="$1"
+    if type open_simulator &>/dev/null; then
+        open_simulator "$pdx_file"
+    else
+        case "$(uname -s)" in
+            Darwin)
+                SIMULATOR_APP="$SDK_PATH/Playdate Simulator.app"
+                open -a "$SIMULATOR_APP" "$pdx_file"
+                ;;
+            *)
+                if [[ "$(uname -s)" == MINGW* ]] || [[ "$(uname -s)" == MSYS* ]]; then
+                    SIMULATOR="$SDK_PATH/bin/PlaydateSimulator.exe"
+                else
+                    SIMULATOR="$SDK_PATH/bin/PlaydateSimulator"
+                fi
+                "$SIMULATOR" "$pdx_file" &
+                ;;
+        esac
+    fi
+}
+
 # Initial build
 echo "Initial build..."
 if pdc "$SOURCE_DIR" "$OUTPUT"; then
     echo "Build successful! Launching simulator..."
-    open -a "$SIMULATOR_APP" "$OUTPUT"
+    launch_sim "$OUTPUT"
 else
     echo "Initial build failed!"
 fi
@@ -46,15 +123,62 @@ fi
 echo ""
 echo "Watching for changes..."
 
-# Watch for changes
-fswatch -o "$SOURCE_DIR" | while read -r event; do
-    echo ""
-    echo "Change detected at $(date '+%H:%M:%S')"
-    echo "Rebuilding..."
+# Watch for changes using appropriate method
+if type watch_directory &>/dev/null; then
+    watch_directory "$SOURCE_DIR" "
+        echo ''
+        echo \"Change detected at \$(date '+%H:%M:%S')\"
+        echo 'Rebuilding...'
+        if pdc '$SOURCE_DIR' '$OUTPUT' 2>&1; then
+            echo 'Build successful!'
+        else
+            echo 'Build failed!'
+        fi
+    "
+elif command -v fswatch &>/dev/null; then
+    # macOS / systems with fswatch
+    fswatch -o "$SOURCE_DIR" | while read -r event; do
+        echo ""
+        echo "Change detected at $(date '+%H:%M:%S')"
+        echo "Rebuilding..."
 
-    if pdc "$SOURCE_DIR" "$OUTPUT" 2>&1; then
-        echo "Build successful!"
-    else
-        echo "Build failed!"
-    fi
-done
+        if pdc "$SOURCE_DIR" "$OUTPUT" 2>&1; then
+            echo "Build successful!"
+        else
+            echo "Build failed!"
+        fi
+    done
+elif command -v inotifywait &>/dev/null; then
+    # Linux with inotify-tools
+    while inotifywait -r -e modify,create,delete "$SOURCE_DIR" 2>/dev/null; do
+        echo ""
+        echo "Change detected at $(date '+%H:%M:%S')"
+        echo "Rebuilding..."
+
+        if pdc "$SOURCE_DIR" "$OUTPUT" 2>&1; then
+            echo "Build successful!"
+        else
+            echo "Build failed!"
+        fi
+    done
+else
+    # Fallback to polling (Windows without inotify)
+    echo "Using polling mode (checking every 2 seconds)..."
+    last_hash=""
+    while true; do
+        current_hash=$(find "$SOURCE_DIR" -type f -exec md5sum {} \; 2>/dev/null | sort | md5sum)
+        if [[ "$current_hash" != "$last_hash" && -n "$last_hash" ]]; then
+            echo ""
+            echo "Change detected at $(date '+%H:%M:%S')"
+            echo "Rebuilding..."
+
+            if pdc "$SOURCE_DIR" "$OUTPUT" 2>&1; then
+                echo "Build successful!"
+            else
+                echo "Build failed!"
+            fi
+        fi
+        last_hash="$current_hash"
+        sleep 2
+    done
+fi

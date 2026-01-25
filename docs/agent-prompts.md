@@ -1,6 +1,6 @@
 # Playdate Development Agent Prompts
 
-Use these prompts with Antigravity's Agent Manager or Claude Code to accelerate your Playdate game development.
+Use these prompts with Claude Code or any AI-powered IDE to accelerate your Playdate game development.
 
 ## Getting Started
 

@@ -2,12 +2,37 @@
 #===============================================================================
 # Playdate Build and Run
 # Builds the current directory's source and launches in simulator
+#
+# Cross-platform support: macOS, Linux, Windows (Git Bash/MSYS2)
 #===============================================================================
 
 set -euo pipefail
 
-SDK_PATH="${PLAYDATE_SDK_PATH:-$HOME/Developer/PlaydateSDK}"
-SIMULATOR_APP="$SDK_PATH/Playdate Simulator.app"
+# Get script directory and source platform utilities
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -f "$SCRIPT_DIR/platform-utils.sh" ]]; then
+    source "$SCRIPT_DIR/platform-utils.sh"
+fi
+
+# SDK path (use platform-aware default if available)
+if [[ -n "${PLAYDATE_SDK_PATH:-}" ]]; then
+    SDK_PATH="$PLAYDATE_SDK_PATH"
+elif type get_default_sdk_path &>/dev/null; then
+    SDK_PATH="$(get_default_sdk_path)"
+else
+    # Fallback based on OS
+    case "$(uname -s)" in
+        Darwin)
+            SDK_PATH="$HOME/Developer/PlaydateSDK"
+            ;;
+        Linux)
+            SDK_PATH="$HOME/PlaydateSDK"
+            ;;
+        *)
+            SDK_PATH="$HOME/Documents/PlaydateSDK"
+            ;;
+    esac
+fi
 
 # Find source directory
 if [[ -d "source" ]]; then
@@ -27,4 +52,28 @@ echo "Building $SOURCE_DIR -> $OUTPUT"
 pdc "$SOURCE_DIR" "$OUTPUT"
 
 echo "Build successful! Launching simulator..."
-open -a "$SIMULATOR_APP" "$OUTPUT"
+
+# Use cross-platform simulator launch
+if type open_simulator &>/dev/null; then
+    open_simulator "$OUTPUT"
+else
+    # Fallback based on OS
+    case "$(uname -s)" in
+        Darwin)
+            SIMULATOR_APP="$SDK_PATH/Playdate Simulator.app"
+            open -a "$SIMULATOR_APP" "$OUTPUT"
+            ;;
+        Linux)
+            SIMULATOR="$SDK_PATH/bin/PlaydateSimulator"
+            "$SIMULATOR" "$OUTPUT" &
+            ;;
+        MINGW*|MSYS*|CYGWIN*)
+            SIMULATOR="$SDK_PATH/bin/PlaydateSimulator.exe"
+            "$SIMULATOR" "$OUTPUT" &
+            ;;
+        *)
+            SIMULATOR="$SDK_PATH/bin/PlaydateSimulator"
+            "$SIMULATOR" "$OUTPUT" &
+            ;;
+    esac
+fi

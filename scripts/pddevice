@@ -2,12 +2,46 @@
 #===============================================================================
 # Deploy to Physical Playdate Device
 # Requires: Playdate connected via USB
+#
+# Cross-platform support: macOS, Linux, Windows (Git Bash/MSYS2)
 #===============================================================================
 
 set -euo pipefail
 
-SDK_PATH="${PLAYDATE_SDK_PATH:-$HOME/Developer/PlaydateSDK}"
-PDUTIL="$SDK_PATH/bin/pdutil"
+# Get script directory and source platform utilities
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -f "$SCRIPT_DIR/platform-utils.sh" ]]; then
+    source "$SCRIPT_DIR/platform-utils.sh"
+fi
+
+# SDK path (use platform-aware default if available)
+if [[ -n "${PLAYDATE_SDK_PATH:-}" ]]; then
+    SDK_PATH="$PLAYDATE_SDK_PATH"
+elif type get_default_sdk_path &>/dev/null; then
+    SDK_PATH="$(get_default_sdk_path)"
+else
+    case "$(uname -s)" in
+        Darwin)
+            SDK_PATH="$HOME/Developer/PlaydateSDK"
+            ;;
+        Linux)
+            SDK_PATH="$HOME/PlaydateSDK"
+            ;;
+        *)
+            SDK_PATH="$HOME/Documents/PlaydateSDK"
+            ;;
+    esac
+fi
+
+# pdutil executable
+case "$(uname -s)" in
+    MINGW*|MSYS*|CYGWIN*)
+        PDUTIL="$SDK_PATH/bin/pdutil.exe"
+        ;;
+    *)
+        PDUTIL="$SDK_PATH/bin/pdutil"
+        ;;
+esac
 
 show_help() {
     cat << EOF
@@ -19,8 +53,11 @@ Options:
   -h, --help     Show this help
   -l, --list     List games on device
   -i, --info     Show device info
+  -p, --platform Show platform detection info
 
 Note: Playdate must be connected via USB and unlocked
+
+Platform: ${PLATFORM_OS:-$(uname -s)}
 EOF
 }
 
@@ -32,9 +69,38 @@ check_device() {
         echo "  1. Playdate is connected via USB"
         echo "  2. Playdate is unlocked (press Lock button)"
         echo "  3. Playdate is not in storage mode"
+
+        # Platform-specific hints
+        case "$(uname -s)" in
+            Linux)
+                echo ""
+                echo "Linux-specific:"
+                echo "  - You may need to add udev rules for Playdate"
+                echo "  - Try running with sudo if permission denied"
+                ;;
+            MINGW*|MSYS*|CYGWIN*)
+                echo ""
+                echo "Windows-specific:"
+                echo "  - Make sure Playdate drivers are installed"
+                echo "  - Try using Windows Device Manager to check connection"
+                ;;
+        esac
+
         return 1
     fi
     return 0
+}
+
+show_platform_info() {
+    echo "Platform Detection"
+    echo "=================="
+    if type print_platform_info &>/dev/null; then
+        print_platform_info
+    else
+        echo "  OS: $(uname -s)"
+        echo "  SDK Path: $SDK_PATH"
+        echo "  pdutil: $PDUTIL"
+    fi
 }
 
 case "${1:-}" in
@@ -50,11 +116,20 @@ case "${1:-}" in
         check_device || exit 1
         "$PDUTIL" info
         ;;
+    -p|--platform)
+        show_platform_info
+        ;;
     "")
         # Build and install current project
         if [[ -d "source" ]]; then
             echo "Building..."
             pdc source output.pdx || exit 1
+        elif [[ -d "Source" ]]; then
+            echo "Building..."
+            pdc Source output.pdx || exit 1
+        elif [[ -d "src" ]]; then
+            echo "Building..."
+            pdc src output.pdx || exit 1
         fi
 
         if [[ -d "output.pdx" ]]; then
