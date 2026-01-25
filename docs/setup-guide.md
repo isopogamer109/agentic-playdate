@@ -178,7 +178,9 @@ pdsim
 
 ## Configure Extensions
 
-### VS Code / Antigravity IDE
+### VS Code (Recommended - Cross-Platform)
+
+**Install VS Code**: Download from https://code.visualstudio.com/ for your platform.
 
 Open the Extensions panel (`Cmd/Ctrl + Shift + X`) and install:
 

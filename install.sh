@@ -494,20 +494,23 @@ install_extensions() {
 
     local code_cli=""
 
-    # Check for various VS Code variants
-    if [[ "$PLATFORM_OS" == "macos" && -f "/Applications/Antigravity.app/Contents/Resources/app/bin/antigravity" ]]; then
-        code_cli="/Applications/Antigravity.app/Contents/Resources/app/bin/antigravity"
-        print_info "Using Antigravity CLI"
-    elif check_command code; then
+    # Check for VS Code variants (cross-platform)
+    if check_command code; then
         code_cli="code"
         print_info "Using VS Code CLI"
     elif check_command codium; then
         code_cli="codium"
         print_info "Using VSCodium CLI"
+    elif [[ "$PLATFORM_OS" == "macos" && -f "/Applications/Antigravity.app/Contents/Resources/app/bin/antigravity" ]]; then
+        # Antigravity is macOS-only alternative
+        code_cli="/Applications/Antigravity.app/Contents/Resources/app/bin/antigravity"
+        print_info "Using Antigravity CLI (macOS)"
     else
-        print_warning "No IDE CLI found - install extensions manually:"
+        print_warning "VS Code not found - install extensions manually:"
         echo "  - sumneko.lua"
         echo "  - Orta.playdate"
+        echo ""
+        print_info "Install VS Code from: https://code.visualstudio.com/"
         return 0
     fi
 
